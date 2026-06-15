@@ -1,0 +1,9 @@
+fn main() -> int{
+    let a: int = -10;
+
+    for (let i: int = 0; i < 2; i++) {
+        print("a = %i\n", a);       
+    }
+
+    return a;
+}
