@@ -7,6 +7,10 @@ __pycache__/
 build/
 dist/
 
+# Debug Folder
+debug/
+tests/
+
 *.spec
 
 # PEP 582; used by e.g. github.com/David-OConnor/pyflow and github.com/pdm-project/pdm
