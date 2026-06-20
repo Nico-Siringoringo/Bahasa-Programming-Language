@@ -592,20 +592,44 @@ class Compiler:
     def builtin_print(self, params: list[ir.Instruction], return_type: ir.Type) -> None:
         func, _ = self.env.lookup('print')
 
-        c_str = self.builder.alloca(return_type)
-        self.builder.store(params[0], c_str)
+        if isinstance(return_type, ir.PointerType) or isinstance(return_type, ir.ArrayType):
+            if isinstance(params[0], ir.LoadInstr):
+                c_fmt: ir.LoadInstr = params[0]
+                g_var_ptr = c_fmt.operands[0]
+                string_val = self.builder.load(g_var_ptr)
+                fmt_arg = self.builder.bitcast(string_val, ir.IntType(8).as_pointer())
+            else:
+                fmt_arg = self.builder.bitcast(self.module.get_global(f"__str__{self.counter}"), ir.IntType(8).as_pointer())
+            return self.builder.call(func, [fmt_arg, *params[1:]])
+        
+        fmt_parts = []
+        fixed_args = []
 
-        rest_params = params[1:]
+        for param, p_type in zip(params, [return_type] + [p.type for p in params[1:]]):
+            if isinstance(p_type, ir.IntType):
+                if p_type.width == 1:
+                    fmt_parts.append("%d")
+                    fixed_args.append(self.builder.zext(param, ir.IntType(32)))
+                else:
+                    fmt_parts.append("%d")
+                    fixed_args.append(param)
+            elif isinstance(p_type, ir.FloatType):
+                fmt_parts.append("%f")
+                fixed_args.append(self.builder.fpext(param, ir.DoubleType()))
+            elif isinstance(p_type, ir.PointerType) or isinstance(p_type, ir.ArrayType):
+                fmt_parts.append("%s")
+                fixed_args.append(param)
+            else:
+                fmt_parts.append("%p")
+                fixed_args.append(param)
 
-        if isinstance(params[0], ir.LoadInstr):
-            """Print from variable declaration string"""
-            c_fmt: ir.LoadInstr = params[0]
-            g_var_ptr = c_fmt.operands[0]
-            string_val = self.builder.load(g_var_ptr)
-            fmt_arg = self.builder.bitcast(string_val, ir.IntType(8).as_pointer())
-            return self.builder.call(func, [fmt_arg, *rest_params])
-        else:
-            """Print from variable declare within print function"""
-            fmt_arg = self.builder.bitcast(self.module.get_global(f"__str_{self.counter}"), ir.IntType(8).as_pointer())
-            return self.builder.call(func, [fmt_arg, *rest_params])
+        fmt_str = " ".join(fmt_parts) + "\n\0"
+        c_fmt = ir.Constant(ir.ArrayType(ir.IntType(8), len(fmt_str)), bytearray(fmt_str.encode("utf8")))
+        global_fmt = ir.GlobalVariable(self.module, c_fmt.type, name=f"__auto_fmt_{self.__increment_counter()}")
+        global_fmt.linkage = 'internal'
+        global_fmt.global_constant = True
+        global_fmt.initializer = c_fmt
+
+        fmt_arg = self.builder.bitcast(global_fmt, ir.IntType(8).as_pointer())
+        return self.builder.call(func, [fmt_arg, *fixed_args])
     # endregion
