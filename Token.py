@@ -104,7 +104,7 @@ ALT_KEYWORDS: dict[str, TokenType] = {
     "fungsi": TokenType.FN,
     "kembali": TokenType.RETURN,
     "jika": TokenType.IF,
-    "atau": TokenType.ELSE,
+    "lainnya": TokenType.ELSE,
     "benar": TokenType.TRUE,
     "salah": TokenType.FALSE,
     "untuk": TokenType.FOR,
@@ -117,12 +117,10 @@ ALT_KEYWORDS: dict[str, TokenType] = {
 BUILTIN_FUNCTION = {'int', 'float', 'input', 'print'}
 TYPE_KEYWORDS: list[str] = ["int", "float", "str", "bool", "void", "bb", "des", "teks"]
 
+COMBINED_KEYWORDS: dict[str, TokenType] = KEYWORDS | ALT_KEYWORDS
+
 def lookup_ident(ident: str) -> TokenType:
-    tt: TokenType | None = KEYWORDS.get(ident)
-    if tt is not None:
-        return tt
-    
-    tt: TokenType | None = ALT_KEYWORDS.get(ident)
+    tt: TokenType | None = COMBINED_KEYWORDS.get(ident)
     if tt is not None:
         return tt
 
