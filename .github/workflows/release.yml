@@ -42,7 +42,7 @@ jobs:
           pyinstaller --onefile \
             --name raven \
             --add-data "src:." \
-            --additional-hook-dir . \
+            --additional-hooks-dir . \
             main.py
 
       - name: Build executable (Windows)
@@ -51,7 +51,7 @@ jobs:
           pyinstaller --onefile `
             --name raven `
             --add-data "src:." `
-            --additional-hook-dir . `
+            --additional-hooks-dir . `
             main.py
 
       - name: Rename binary
